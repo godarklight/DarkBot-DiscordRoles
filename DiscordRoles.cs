@@ -93,7 +93,7 @@ namespace DarkBot.DiscordRoles
         {
             SocketGuildChannel guildChannel = reaction.Channel as SocketGuildChannel;
             //Bots shouldn't react to itself, should only react to roles emotes, and only to users.
-            if (guildChannel == null || !roles.ContainsKey(reaction.MessageId) || reaction.UserId == _client.CurrentUser.Id || !reaction.User.IsSpecified)
+            if (guildChannel == null || !roles.ContainsKey(reaction.MessageId) || reaction.UserId == _client.CurrentUser.Id)
             {
                 return;
             }
@@ -109,7 +109,7 @@ namespace DarkBot.DiscordRoles
             }
 
             IEmote emote = reaction.Emote;
-            IGuildUser user = reaction.User.Value as IGuildUser;
+            SocketGuildUser user = guildChannel.GetUser(reaction.UserId);
             if (user != null && roles[reaction.MessageId].ContainsKey(emote.Name))
             {
                 string roleString = roles[reaction.MessageId][emote.Name];
@@ -118,9 +118,9 @@ namespace DarkBot.DiscordRoles
                     bool hasRole = false;
                     if (role.Mention == roleString)
                     {
-                        foreach (ulong testID in user.RoleIds)
+                        foreach (SocketRole testRole in user.Roles)
                         {
-                            if (testID == role.Id)
+                            if (testRole.Id == role.Id)
                             {
                                 hasRole = true;
                             }
@@ -156,12 +156,13 @@ namespace DarkBot.DiscordRoles
 
         // The Ready event indicates that the client has opened a
         // connection and it is now safe to access the cache.
-        private async Task ReadyAsync()
+        private Task ReadyAsync()
         {
-            await LoadRoles();
+            LoadRoles();
+            return Task.CompletedTask;
         }
 
-        private async Task LoadRoles()
+        private async void LoadRoles()
         {
             roles.Clear();
 
@@ -190,7 +191,7 @@ namespace DarkBot.DiscordRoles
                                         //VALID LINE FORMAT <emoji> <@!role> - Ignored text
                                         //Get rid of any leading spaces
                                         currentLine = currentLine.TrimStart();
-                                        if (!currentLine.Contains(" ") || !currentLine.Contains("<@&") || !currentLine.Contains(">"))
+                                        if (!currentLine.Contains(" ") || currentLine.StartsWith("<@&") || !currentLine.Contains("<@&") || !currentLine.Contains(">"))
                                         {
                                             continue;
                                         }
@@ -308,26 +309,32 @@ namespace DarkBot.DiscordRoles
             }
         }
 
-        private async Task MessageReceivedAsync(SocketMessage message)
+        private Task MessageReceivedAsync(SocketMessage message)
         {
             SocketGuildChannel guildChannel = message.Channel as SocketGuildChannel;
             // The bot should never respond to itself, and only respond to roles channels
             if (message.Author.Id == _client.CurrentUser.Id || guildChannel == null || !rolesChannels.ContainsKey(guildChannel.Guild.Id) || message.Channel.Id != rolesChannels[guildChannel.Guild.Id])
-                return;
+            {
+                return Task.CompletedTask;
+            }
 
             Console.WriteLine("Reloading Roles from new message");
-            await LoadRoles();
+            LoadRoles();
+            return Task.CompletedTask;
         }
 
-        private async Task MessageUpdatedAsync(Cacheable<IMessage, ulong> cacheable, SocketMessage message, ISocketMessageChannel channel)
+        private Task MessageUpdatedAsync(Cacheable<IMessage, ulong> cacheable, SocketMessage message, ISocketMessageChannel channel)
         {
             SocketGuildChannel guildChannel = message.Channel as SocketGuildChannel;
             // The bot should never respond to itself, and only respond to roles channels
             if (message.Author.Id == _client.CurrentUser.Id || guildChannel == null || !rolesChannels.ContainsKey(guildChannel.Guild.Id) || message.Channel.Id != rolesChannels[guildChannel.Guild.Id])
-                return;
+            {
+                return Task.CompletedTask;
+            }
 
             Console.WriteLine("Reloading Roles from updated message");
-            await LoadRoles();
+            LoadRoles();
+            return Task.CompletedTask;
         }
 
         public async Task SaySomething(string message, ulong serverID, ulong channelID)
