@@ -79,12 +79,12 @@ namespace DarkBot.DiscordRoles
             SaveRolesChannels();
         }
 
-        public async Task ReactionAdded(Cacheable<IUserMessage, ulong> cacheable, ISocketMessageChannel msg, SocketReaction reaction)
+        public async Task ReactionAdded(Cacheable<IUserMessage, ulong> cacheable, Cacheable<IMessageChannel, ulong> msg, SocketReaction reaction)
         {
             await ReactionChange(reaction, true);
         }
 
-        public async Task ReactionRemoved(Cacheable<IUserMessage, ulong> cacheable, ISocketMessageChannel msg, SocketReaction reaction)
+        public async Task ReactionRemoved(Cacheable<IUserMessage, ulong> cacheable, Cacheable<IMessageChannel, ulong> msg, SocketReaction reaction)
         {
             await ReactionChange(reaction, false);
         }
